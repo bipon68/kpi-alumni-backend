@@ -10,6 +10,8 @@ using KpiAlumni.Data;
 // Application Builder
 var builder = WebApplication.CreateBuilder(args);
 
+
+
 // Load the .env file
 Env.Load();
 
