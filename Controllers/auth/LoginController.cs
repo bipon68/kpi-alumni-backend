@@ -3,8 +3,6 @@ using KpiAlumni.Dtos.Account;
 using KpiAlumni.Interfaces;
 using KpiAlumni.Mappers;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Win32;
-using NuGet.Common;
 
 namespace KpiAlumni.Controllers.auth
 {
