@@ -7,33 +7,30 @@ public class StringOperation
 {
     public static string GenerateMd5(string input)
     {
-        using (MD5 md5 = MD5.Create())
+        var hashBytes = MD5.HashData(Encoding.UTF8.GetBytes(input));
+
+        // Convert the byte array to a hexadecimal string
+        var sb = new StringBuilder();
+        foreach (var b in hashBytes)
         {
-            byte[] hashBytes = md5.ComputeHash(Encoding.UTF8.GetBytes(input));
-
-            // Convert the byte array to a hexadecimal string
-            StringBuilder sb = new StringBuilder();
-            foreach (byte b in hashBytes)
-            {
-                sb.Append(b.ToString("x2"));
-            }
-
-            return sb.ToString();
+            sb.Append(b.ToString("x2"));
         }
+
+        return sb.ToString();
     }
     public static string MkRandomCode(int length = 32)
     {
         const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        StringBuilder result = new StringBuilder(length);
+        var result = new StringBuilder(length);
 
-        using (RandomNumberGenerator rng = RandomNumberGenerator.Create())
+        using (var rng = RandomNumberGenerator.Create())
         {
-            byte[] uintBuffer = new byte[sizeof(uint)];
+            var uintBuffer = new byte[sizeof(uint)];
 
-            for (int i = 0; i < length; i++)
+            for (var i = 0; i < length; i++)
             {
                 rng.GetBytes(uintBuffer);
-                uint num = BitConverter.ToUInt32(uintBuffer, 0);
+                var num = BitConverter.ToUInt32(uintBuffer, 0);
                 result.Append(chars[(int)(num % (uint)chars.Length)]);
             }
         }
@@ -44,16 +41,16 @@ public class StringOperation
     public static string MkOtp(int length = 6)
     {
         const string chars = "0123456789";
-        StringBuilder result = new StringBuilder(length);
+        var result = new StringBuilder(length);
 
-        using (RandomNumberGenerator rng = RandomNumberGenerator.Create())
+        using (var rng = RandomNumberGenerator.Create())
         {
-            byte[] uintBuffer = new byte[sizeof(uint)];
+            var uintBuffer = new byte[sizeof(uint)];
 
-            for (int i = 0; i < length; i++)
+            for (var i = 0; i < length; i++)
             {
                 rng.GetBytes(uintBuffer);
-                uint num = BitConverter.ToUInt32(uintBuffer, 0);
+                var num = BitConverter.ToUInt32(uintBuffer, 0);
                 result.Append(chars[(int)(num % (uint)chars.Length)]);
             }
         }
@@ -65,16 +62,16 @@ public class StringOperation
     {
         if (length <= 0) throw new ArgumentException("Length must be a positive integer");
 
-        StringBuilder result = new StringBuilder(length);
+        var result = new StringBuilder(length);
 
-        using (RandomNumberGenerator rng = RandomNumberGenerator.Create())
+        using (var rng = RandomNumberGenerator.Create())
         {
-            byte[] buffer = new byte[sizeof(uint)];
+            var buffer = new byte[sizeof(uint)];
 
-            for (int i = 0; i < length; i++)
+            for (var i = 0; i < length; i++)
             {
                 rng.GetBytes(buffer);
-                uint num = BitConverter.ToUInt32(buffer, 0);
+                var num = BitConverter.ToUInt32(buffer, 0);
 
                 // Get a digit between 0 and 9
                 result.Append((num % 10).ToString());
@@ -88,7 +85,7 @@ public class StringOperation
     {
         try
         {
-            byte[] bytes = Encoding.UTF8.GetBytes(inpString ?? "");
+            var bytes = Encoding.UTF8.GetBytes(inpString ?? "");
             return Convert.ToBase64String(bytes);
         }
         catch
@@ -101,7 +98,7 @@ public class StringOperation
     {
         try
         {
-            byte[] bytes = Convert.FromBase64String(base64EncodedData ?? "");
+            var bytes = Convert.FromBase64String(base64EncodedData ?? "");
             return Encoding.UTF8.GetString(bytes);
         }
         catch
