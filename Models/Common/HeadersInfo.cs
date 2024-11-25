@@ -4,6 +4,10 @@ namespace KpiAlumni.Models.Common;
 
 public class HeadersInfo
 {
+    public static string GetInitId(HttpContext context)
+    {
+        return context.Request.Headers["init-id"].ToString();
+    }
     public static string GetUserUid(HttpContext context)
     {
         var uid = context.Request.Headers["User-Uid"].ToString().Trim();

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using DotNetEnv;
 using Microsoft.OpenApi.Models;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +12,6 @@ using KpiAlumni.Middleware;
 var builder = WebApplication.CreateBuilder(args);
 
 
-
 // Load the .env file
 Env.Load();
 
@@ -20,16 +20,14 @@ Env.Load();
 builder.Services.AddControllers();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title= "KPI Alumni", Version="1.0.1" });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "KPI Alumni", Version = "1.0.1" });
 });
 
 //Add services to the container.
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowSpecificOrigin", policy =>
-    {
-        policy.WithOrigins("*").AllowAnyMethod().AllowAnyHeader();
-    });
+    options.AddPolicy("AllowSpecificOrigin",
+        policy => { policy.WithOrigins("*").AllowAnyMethod().AllowAnyHeader(); });
 });
 
 //--Connection String
@@ -42,7 +40,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     {
         //--For MySQL Database Connection
         options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
-        options.EnableSensitiveDataLogging(true); // Enable sensitive data logging
+        options.EnableSensitiveDataLogging(); // Enable sensitive data logging
     }
     catch
     {
@@ -59,10 +57,7 @@ builder.Services.Configure<KestrelServerOptions>(options =>
 //--Middleware
 var app = builder.Build();
 
-if (app.Environment.IsProduction())
-{
-    app.UseHttpsRedirection();
-}
+app.UseHttpsRedirection();
 app.UseCors("AllowSpecificOrigin"); // Apply the CORS policy to the application's request pipeline
 
 // Configure the HTTP request pipeline.

@@ -1,6 +1,4 @@
 using KpiAlumni.Data;
-using KpiAlumni.Dtos.Account;
-using KpiAlumni.Interfaces;
 using KpiAlumni.Models.ApiResponse;
 using Microsoft.AspNetCore.Mvc;
 
@@ -33,6 +31,17 @@ namespace KpiAlumni.Controllers.auth
                 Error = 0,
                 Message = "Login Info"
             });
+        }
+        
+        [HttpPost("verify")]
+        public Task<ActionResult<IEnumerable<ApiResponse>>> LoginVerifyAsync()
+        {
+            
+            return Task.FromResult<ActionResult<IEnumerable<ApiResponse>>>(Ok(new ApiResponse
+            {
+                Error = 0,
+                Message = "Login Info"
+            }));
         }
     }
 

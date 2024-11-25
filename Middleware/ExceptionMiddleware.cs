@@ -4,17 +4,17 @@ using NuGet.Protocol;
 
 namespace KpiAlumni.Middleware;
 
-public class ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger)
+public class ExceptionMiddleware(RequestDelegate _next, ILogger<ExceptionMiddleware> _logger)
 {
     public async Task Invoke(HttpContext context)
     {
         try
         {
-            await next(context);
+            await _next(context);
         }
         catch (Exception ex)
         {
-            logger.LogError($"Something went wrong: {ex}");
+            _logger.LogError($"Something went wrong: {ex}");
             await HandleExceptionAsync(context, ex);
         }
     }
