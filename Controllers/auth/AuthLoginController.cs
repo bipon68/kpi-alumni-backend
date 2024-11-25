@@ -11,6 +11,18 @@ namespace KpiAlumni.Controllers.auth
     public class AuthLoginController(AppDbContext context) : ControllerBase
     {
         private readonly AppDbContext _context = context;
+        
+        // GET: api/v1/login
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<ApiResponse>>> GetLoginAsync()
+        {
+            
+            return Ok(new ApiResponse
+            {
+                Error = 0,
+                Message = "Login Info"
+            });
+        }
 
         // POST: api/v1/login
         [HttpPost]

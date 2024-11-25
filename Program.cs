@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using KpiAlumni.Utils;
 using KpiAlumni.Data;
-
+using KpiAlumni.Middleware;
 
 
 // Application Builder
@@ -40,14 +40,13 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 {
     try
     {
-        //--For MySQL
+        //--For MySQL Database Connection
         options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
         options.EnableSensitiveDataLogging(true); // Enable sensitive data logging
-
     }
     catch
     {
-        throw new Exception("Error: Unable to connect to the database. Please check the connection string");
+        throw new Exception("Error: Unable to connect to the database. Please check the connection string.");
     }
 });
 
@@ -60,8 +59,10 @@ builder.Services.Configure<KestrelServerOptions>(options =>
 //--Middleware
 var app = builder.Build();
 
-app.UseHttpsRedirection();
-
+if (app.Environment.IsProduction())
+{
+    app.UseHttpsRedirection();
+}
 app.UseCors("AllowSpecificOrigin"); // Apply the CORS policy to the application's request pipeline
 
 // Configure the HTTP request pipeline.
@@ -70,6 +71,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseMiddleware<NotFoundMiddleware>();
+app.UseMiddleware<ExceptionMiddleware>();
 
 app.MapControllers();
 
