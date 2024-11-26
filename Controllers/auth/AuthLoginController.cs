@@ -6,10 +6,8 @@ namespace KpiAlumni.Controllers.auth;
 
 [ApiController]
 [Route("api/v1/login")]
-public class AuthLoginController(AppDbContext context) : ControllerBase
+public class AuthLoginController(AppDbContext _context) : ControllerBase
 {
-    private readonly AppDbContext _context = context;
-
     // GET: api/v1/login
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ApiResponse>>> GetLoginAsync()
