@@ -13,7 +13,7 @@ namespace KpiAlumni.Controllers
         [HttpGet("info")]
         public async Task<ActionResult<IEnumerable<ApiResponse>>> GetInitInfoAsync()
         {
-            //Init ID for visitor
+            //Init ID for Visitor
             var initInfo = await InitializeOperation.GetInit(_context, HttpContext);
             
             return Ok(new ApiResponse

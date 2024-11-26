@@ -38,12 +38,12 @@ public class VisitorInit
     public string IpString { get; set; } = "";
 
     [Required]
-    [Column("CreateAt")]
-    public long CreateAt { get; set; }
+    [Column("CreatedAt")]
+    public long CreatedAt { get; set; }
 
     [Required]
-    [Column("UpdateAt")]
-    public long UpdateAt { get; set; }
+    [Column("UpdatedAt")]
+    public long UpdatedAt { get; set; }
 
     [Required]
     [Column("DeletedAt")]

@@ -33,8 +33,8 @@ public static class InitializeOperation
             Status = ListStatus.STATUS_ACTIVE,
             Creator = userId,
             IpString = IpOperation.GetIpString(_httpContext),
-            CreateAt = TimeOperation.GetUnixTime(),
-            UpdateAt = TimeOperation.GetUnixTime()
+            CreatedAt = TimeOperation.GetUnixTime(),
+            UpdatedAt = TimeOperation.GetUnixTime()
         };
         
         //Save on DB
