@@ -4,10 +4,10 @@ namespace KpiAlumni.Interfaces
 {
     public interface IAccountRepository
     {
-        Task<User> GetByIdAsync(int id);
-        Task<User> CreateAsync(User userModel);
+        Task<UserProfile> GetByIdAsync(int id);
+        Task<UserProfile> CreateAsync(UserProfile userModel);
         Task<bool> EmailExistsAsync(string email);
-        Task<User> GetUserByUsernameAsync(string username);
+        Task<UserProfile> GetUserByUsernameAsync(string username);
 
     }
 }
