@@ -56,6 +56,7 @@ public class UserProfile
 
     [Required]
     [Column("PrimaryAddress")]
+    [MaxLength(1000)]
     public string PrimaryAddress { get; set; } = "";
 
     [Required]
