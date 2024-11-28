@@ -1,4 +1,4 @@
-﻿namespace KpiAlumni.Models;
+﻿namespace KpiAlumni.Models.ListStatus;
 
 public class ListStatus
 {

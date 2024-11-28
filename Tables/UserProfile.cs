@@ -128,6 +128,10 @@ public class UserProfile
     [Required] 
     [Column("CreatedAt")] 
     public long CreatedAt { get; set; }
+    
+    [Required] 
+    [Column("LastLoginAt")] 
+    public long LastLoginAt { get; set; }
 
     [Required] 
     [Column("UpdatedAt")] 
