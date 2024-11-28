@@ -27,15 +27,15 @@ public class VisitorInit
     [Column("Status")]
     [MaxLength(20)]
     public string Status { get; set; } = "";
-
-    [Required]
-    [Column("Creator")]
-    public int Creator { get; set; }
-
+    
     [Required]
     [Column("IpString")]
     [MaxLength(64)]
     public string IpString { get; set; } = "";
+    
+    [Required]
+    [Column("Creator")]
+    public int Creator { get; set; }
 
     [Required]
     [Column("CreatedAt")]
