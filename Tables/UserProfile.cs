@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using KpiAlumni.Data;
+using KpiAlumni.Utils;
 
 namespace KpiAlumni.Tables;
 
@@ -15,14 +17,9 @@ public class UserProfile
     public int UserId { get; set; }
 
     [Required]
-    [Column("FirstName")]
+    [Column("FullName")]
     [MaxLength(300)]
-    public string FirstName { get; set; } = "";
-
-    [Required]
-    [Column("LastName")]
-    [MaxLength(300)]
-    public string LastName { get; set; } = "";
+    public string FullName { get; set; } = "";
 
     [Required]
     [Column("UserName")]
@@ -140,4 +137,25 @@ public class UserProfile
     [Required] 
     [Column("DeletedAt")] 
     public long DeletedAt { get; set; }
+    
+    public static async Task<UserProfile> CreateProfile(HttpContext hContext, AppDbContext _context, string fullName, int emailProviderId, string passHash, string photoUrl = "")
+    {
+        var userProfile = new UserProfile
+        {
+            FullName = fullName,
+            Password = passHash, // StringOperation.GenerateMD5(data.Password1),
+            PrimaryEmail = Convert.ToString(emailProviderId),
+            PhotoUrl = photoUrl,
+            Status = "active",
+            Creator = 0,
+            IpString = IpOperation.GetIpString(hContext),
+            CreatedAt = TimeOperation.GetUnixTime(),
+            UpdatedAt = TimeOperation.GetUnixTime(),
+            DeletedAt = 0,
+        };
+        _context.UserProfile.Add(userProfile);
+        await _context.SaveChangesAsync();
+
+        return userProfile;
+    }
 }

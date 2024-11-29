@@ -1,11 +1,10 @@
 ﻿using KpiAlumni.Data;
 using KpiAlumni.Models.Common;
+using KpiAlumni.Models.Initialize;
+using KpiAlumni.Models.ListStatus;
 using KpiAlumni.Tables;
 using KpiAlumni.Utils;
 using Microsoft.EntityFrameworkCore;
-
-namespace KpiAlumni.Models.Initialize;
-
 public static class InitializeOperation
 {
     public static async Task<InitProperty> GetInit(AppDbContext _dbContext, HttpContext _httpContext, int userId =0)

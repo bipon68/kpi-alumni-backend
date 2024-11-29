@@ -3,13 +3,9 @@ using KpiAlumni.Models.ApiResponse;
 using KpiAlumni.Models.Auth;
 using KpiAlumni.Models.Common;
 using KpiAlumni.Models.Firebase;
-using KpiAlumni.Models.Initialize;
-using KpiAlumni.Models.ListStatus;
-using KpiAlumni.Models.UserProfile;
 using KpiAlumni.Models.UserProvider;
 using KpiAlumni.Tables;
 using KpiAlumni.Utils;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,167 +16,201 @@ namespace KpiAlumni.Controllers.auth;
 public class AuthRegistrationController(AppDbContext _context) : Controller
 {
     [HttpPost("with-email")]
-    public async Task<ActionResult<IEnumerable<ApiResponse>>> RegistrationAsync()
+    public async Task<ActionResult<IEnumerable<ApiResponse>>> RegistrationAccountAsync(AuthRegProperty authRegProperty)
     {
-        //-- Validate the request
-        //-- Check if the user already exists
-        //-- Create a new user
-        //-- Send a verification email
-        //-- Return a response
-        return Ok(new ApiResponse
-        {
-            Error = 0,
-            Message = "Registration Info"
-        });
-    }
-    
-    [HttpPost("with-provider")]
-    public async Task<ActionResult<IEnumerable<ApiResponse>>> RegistrationWithProviderAsync(AuthRegProviderProperty data)
-    {
-
-        var timeNow = TimeOperation.GetUnixTime();
+        //--InitInfo
         var initId = HeadersInfo.GetInitId(HttpContext);
-        var userUid = HeadersInfo.GetUserUid(HttpContext);
-        var refreshToken = HeadersInfo.GetRefreshToken(HttpContext);
-        var md5RefreshToken = HeadersInfo.GetMd5RefreshToken(HttpContext);
-        var ipString = IpOperation.GetIpString(HttpContext);
-        
-        //--Validate init id 
+
+        //Check init id is valid
         var visitorInit = await InitializeOperation.ValidateInitIdAsync(_context, initId);
+
         if (visitorInit.Error != 0)
         {
             return Ok(new ApiResponse
             {
                 Error = 1,
-                Message = "Invalid Request."
+                Message = "Invalid Init ID",
             });
         }
-        
-        //--Find the User on ProviderLoggedIn Table by userUid #
-        var providerReq = await _context.UserProvider.FirstOrDefaultAsync(x=>x.UserUid == userUid && x.Status == ListStatus.STATUS_ACTIVE && x.DeletedAt == 0);
-        if (providerReq == null)
+
+        //--Check Email id is already exist
+        var emailExist = await _context.UserProvider.FirstOrDefaultAsync(x =>
+            x.Identity == authRegProperty.Email && x.IdentityType == UserProviderIdentityTypes.EMAIL &&
+            x.DeletedAt == 0);
+
+        if (emailExist != null)
         {
-            // Find Email on Firebase Provider by User UID
-            var firebase = new FirebaseAuthService();
-            var firebaseUser = await firebase.GetUserByUidAsync(userUid);
-            var email = firebaseUser?.ProviderData[0].Email ?? "";
-            
-            // Find userProvider by email from UID Email
-            var uProviderEmail= await _context.UserProvider.FirstOrDefaultAsync(x=>x.Identity == email && x.IdentityType == UserProviderIdentityTypes.EMAIL && x.DeletedAt == 0);
-            
-            //-- State
-            var state = await UserProfileStates.GetState(_context, providerReq, uProviderEmail);
-            if (state.Reference == UserProfileStates.NOT_FOUND && userUid.Length > 20)
+            return Ok(new ApiResponse
             {
-                return Ok(new ApiResponse
+                Error = 1,
+                Message = "Email already exist",
+            });
+        }
+
+        //--Create Local User Profile
+        var providerFix = new UserPasswordProviderOperation();
+        var fbProvider = await providerFix.ForceCreatePasswordProvider(HttpContext, _context, authRegProperty.Email,
+            authRegProperty.Password1, authRegProperty.FullName);
+
+        if (providerFix.userProvider == null)
+        {
+            return Ok(new ApiResponse
                 {
                     Error = 1,
-                    Message = "Invalid Login Information",
-                    Reference = "PromptForRegistration"
+                    Message =providerFix.Message
                 });
-            }
-            if (state.Reference == UserProfileStates.LINK_REQUIRED)
-            {
-                return Ok(new ApiResponse
-                {
-                    Error = 2,
-                    Message = "Account to Link Required.",
-                    Reference = "PromptForLinkWithAccount"
-                });
-            }
-
-            return Ok(new ApiResponse
-            {
-                Error = 3,
-                Message = "User not found in the system.",
-                Reference = "provider"
-            });
         }
 
-        var userId = providerReq.UserId;
-        var providerId = providerReq.Id;
-
-        var userProfile = await _context.UserProfile.Where(x => x.Id == userId && x.Status == UserProfileStates
-            .ACTIVE && x.DeletedAt == 0).FirstOrDefaultAsync();
-
-        if (userProfile == null)
+        var primaryEmailProviderId = providerFix.userProvider.Id;
+        var loginUserUid = fbProvider?.Uid;
+        if (loginUserUid == null)
         {
             return Ok(new ApiResponse
             {
                 Error = 1,
-                Message = "User not found in the system.",
-                Reference = "profile"
+                Message = "Technical Error",
             });
         }
         
-        // Find Login Log
-        var userLoginLog = await _context.UserLoginLog.Where(x => x.UniqueKey == md5RefreshToken && x.DeletedAt == 0)
-            .FirstOrDefaultAsync();
+        //--Create User Profile
+        // Create New Profile
+        var passHash = StringOperation.GenerateMd5(authRegProperty.Password1);
+        var userProfile = await UserProfile.CreateProfile(HttpContext, _context, authRegProperty.FullName, primaryEmailProviderId, passHash);
+        var userId = userProfile.Id;
         
-        //--Login Status Type
-        var loginStatus = UserLoginLogStatusTypes.GetType(userLoginLog);
-        if (loginStatus == UserLoginLogStatusTypes.LOGGED_IN)
+        //--Update Local Provider 
+        await providerFix.UpdateUserId(_context, userId);
+        
+        //-- TODO: Send Email Verification
+        // var emailVerification = new EmailVerification();
+        // await emailVerification.SendEmailVerificationAsync(HttpContext, _context, userId, primaryEmailProviderId, authRegProperty.Email);
+        
+        return Ok(new ApiResponse
         {
-            return Ok(new ApiResponse
-            {
-                Error = 0,
-                Message = "User already logged in",
-                Reference = UserLoginLogStatusTypes.LOGGED_IN,
-            });
-        }
-        if (loginStatus != null)
+            Error = 0,
+            Message = "Account Created Successfully",
+        });
+    }
+
+    [HttpPost("with-provider")]
+    public async Task<ActionResult<IEnumerable<ApiResponse>>> RegistrationWithProviderAsync(
+        AuthReg2Property regData)
+    {
+        //--InitInfo
+        var initId = HeadersInfo.GetInitId(HttpContext);
+        var reqUserUid = HeadersInfo.GetUserUid(HttpContext);
+        
+        //-- Check init id is  valid
+        var initStatus = await InitializeOperation.ValidateInitIdAsync(_context, initId);
+        if (initStatus.Error != 0)
         {
             return Ok(new ApiResponse
             {
                 Error = 1,
-                Message = "User login status is invalid",
-                Reference = loginStatus,
+                Message = "Invalid Init ID",
             });
         }
         
-        // Validate Refresh Token with the Firebase
-        var firebaseAuth2 = new FirebaseAuth2();
-        var firebaseAuth2Validate = await firebaseAuth2.ExchangeRefreshTokenAsync(refreshToken, userUid);
-        if (firebaseAuth2Validate == null)
+        //--Validate Data
+        var validateData = regData.ValidateAccountCreate2(reqUserUid);
+        if (validateData.Error != 0)
         {
             return Ok(new ApiResponse
             {
                 Error = 1,
-                Message = "Unable to logging in"
+                Message = validateData.Message,
+                Reference = validateData.Reference
             });
         }
         
-        //--crate login log
-        var userLoginLogCreate = new UserLoginLog
+        //--Collect Firebase User info
+        var firebaseAuth = new FirebaseAuthService();
+        var firebaseUser = await firebaseAuth.GetUserByUidAsync(reqUserUid);
+        if(firebaseUser == null)
         {
-            UserId = userId,
-            ProviderId = providerId,
-            UserUid = userUid,
-            LoginBy = "refresh_token",
-            UniqueKey = md5RefreshToken,
-            UserAgent = "",
-            ExpiredAt = timeNow + 864000,
-            LogoutAt = 0,
-            ChecksumBrowser = "",
-            Status = UserLoginLogStatusTypes.LOGGED_IN,
-            Creator = userId,
-            IpString = ipString,
-            CreatedAt = timeNow,
-            UpdatedAt = timeNow,
-            DeletedAt = 0
+            return Ok(new ApiResponse
+            {
+                Error = 1,
+                Message = "Error on Auth Data",
+            });
+        }
+
+        var firebaseProviderData = firebaseUser.ProviderData.FirstOrDefault();
+        var identity = firebaseProviderData?.Email;
+        if (identity == null)
+        {
+            return Ok(new ApiResponse
+            {
+                Error = 1,
+                Message = "Error on Auth Data from Vendor",
+            });
+        }
+        
+        //--Create Local User profile (UID is same as Firebase UID)
+        // Create Local User Profile (UID Requested)
+        var localProvider = new UserProvider
+        {
+            UserId = 0,
+            Provider = firebaseProviderData?.ProviderId ?? "",
+            LocalProvider = firebaseUser.ProviderId,
+            DisplayName = firebaseProviderData?.DisplayName ?? "",
+            IdentityType = UserProviderIdentityTypes.EMAIL,
+            Identity = identity,
+            IsVerified = true,
+            PhotoUrl = firebaseUser.PhotoUrl,
+            ProviderUid = firebaseUser?.Uid ?? "",
+            UserUid = reqUserUid,
+            IsHide = false,
+            Status = "active",
+            IpString = IpOperation.GetIpString(HttpContext),
+            CreatedAt = TimeOperation.GetUnixTime(),
+            UpdatedAt = TimeOperation.GetUnixTime(),
+            DeletedAt = 0,
         };
-        _context.UserLoginLog.Add(userLoginLogCreate);
+        _context.UserProvider.Add(localProvider);
         await _context.SaveChangesAsync();
-
-        userProfile.LastLoginAt = timeNow;
-        _context.UserProfile.Update(userProfile);
+        
+        var primaryEmailProviderId = localProvider.Id;
+        var passHash = "";
+        var fullName = firebaseUser?.DisplayName ?? "";
+        var photoUrl = firebaseUser?.PhotoUrl ?? "";
+        var userProfile = await UserProfile.CreateProfile(HttpContext, _context, fullName,
+            primaryEmailProviderId, passHash, photoUrl);
+        var userId = userProfile.Id;
+        
+        //--Update Local Provider
+        await _context.UserProvider.Where(x => x.Id == primaryEmailProviderId)
+            .ForEachAsync(x => x.UserId = userId);
         await _context.SaveChangesAsync();
         
         return Ok(new ApiResponse
         {
             Error = 0,
-            Message = "Login Success",
-            Reference = UserLoginLogStatusTypes.LOGGED_IN,
+            Message = "Account Created Successfully",
         });
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
